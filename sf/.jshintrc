@@ -1,0 +1,29 @@
+{
+        "exported":             [ "Pair" ]
+      , "bitwise":              false
+      , "camelcase":            false
+      , "curly":                true
+      , "eqeqeq":               true
+      , "es3":                  false
+      , "forin":                true
+      , "freeze":               false
+      , "immed":                true
+      , "indent":               8
+      , "latedef":              true
+      , "newcap":               false
+      , "noarg":                true
+      , "noempty":              false
+      , "nonbsp":               true
+      , "nonew":                true
+      , "plusplus":             false
+      , "quotmark":             "single"
+      , "undef":                true
+      , "unused":               false
+      , "strict":               true
+      , "trailing":             true
+      , "maxlen":               80
+      , "globalstrict":         true
+      , "laxcomma":             true
+      , "laxbreak":             true
+      , "multistr":             true
+}
