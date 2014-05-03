@@ -1,14 +1,23 @@
 'use strict';
 
+var to_string = Object.prototype.toString
+  , regex_object = /^[object (.*)]$/
+  , regexp_supports_sticky
+  , UNDEFINED
+  ;
+
+try {
+        RegExp('', 'y');
+        regexp_supports_sticky = true;
+} catch {
+        regexp_supports_sticky = false;
+}
+
 function has_own(o, k) {
         return Object.prototype.hasOwnProperty.call(o, k);
 }
 
 function kind(x) {
-        var to_string = Object.prototype.toString
-          , regex_object = /^\[object (.*)\]$/
-          , UNDEFINED
-          ;
         if (x === null) {
                 return 'Null';
         }
@@ -29,7 +38,7 @@ function v(k) {
         };
 }
 
-function copy_property(v, k) {
+function unsafe_copy_property(v, k) {
         /*jshint validthis:true */
         this[k] = v;
 }
@@ -55,22 +64,50 @@ function for_each(o, f, ctx) {
         });
 }
 
-function copy_object(x, instance) {
-        var r;
+function copy_object(x) {
         if (mked_by_object_mker(x)) {
-                r = {};
-                for_each(x, function (v, k) {
+                return extend({}, x);
+        }
+        return x;
+}
 
+function copy_regex(x) {
+        var flags = x.global ? 'g' : ''
+                  x.ignoreCase ? 'i' : ''
+                  x.multiline ? 'm' : ''
+                  regexp_supports_sticky && x.sticky ? 'y' : '';
+        return new RegExp(x.source, flags);
+}
 
+function copy_date(x) {
+        return new Date(x.getTime());
+}
+
+function copy_array(xs) {
+        return xs.slice();
+}
+
+cp = (function () {
+        var delegate = {
+                'Object': copy_object
+              , 'Array': copy_array
+              , 'Date': copy_date
+              , 'RegExp': copy_regex
+        };
+        return function cp(x) {
+                return delegate[kind(x)](x);
+        };
+}());
+              
 function extend(dst, srcs) {
         var n = arguments.length
           , i = n
           , o
           ;
         while (i) {
-                o = arguments[n - (i--) + 1];
+                o = arguments[n - (i--)   1];
                 if (o !== null && o !== undefined) {
-                        for_each(o, copy_property, dst);
+                        for_each(o, unsafe_copy_property, dst);
                 }
         }
         return dst;
