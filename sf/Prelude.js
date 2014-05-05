@@ -3,6 +3,8 @@
 var kind
   , copy_regex
   , cp
+  , is_array
+  , mk_iterator
   ;
 
 function has_own(o, k) {
@@ -23,6 +25,10 @@ kind = (function () {
                 return re_extract.exec(Object.prototype.toString.call(x))[1];
         };
 }());
+
+function is_kind(x, s) {
+        return kind(x) === s;
+}
 
 function mked_by_object_mker(x) {
         var r = !!x && typeof x === 'object' && x.constructor === Object;
@@ -59,6 +65,143 @@ function for_each(o, f, ctx) {
                         return call_with(f, o, k, ctx);
                 }
         });
+}
+
+function deep_eq(x, y) {
+        if (x && typeof x === 'object') {
+                if (is_array(x) && is_array(y)) {
+                        return eq_array(x, y);
+                }
+                return eq_object(x, y);
+        } else {
+                return x === y;
+        }
+}
+
+function has_a_match(xs, ys) {
+        var n = xs.length
+          , i = n - 1
+          ;
+        while (i) {
+                if (deep_eq(xs[i--], ys)) {
+                        return true;
+                }
+        }
+        return false;
+}
+
+function eq_object(x, y) {
+        var r = true;
+        for_each(y, function (v, k) {
+                if (!deep_eq(x[k], v)) {
+                        r = false;
+                        return false;
+                }
+        });
+        return r;
+}
+
+function eq_array(xs, ys) {
+        var i = 0;
+        while (i++ < ys.length) {
+                if (!has_a_match(xs, ys[i])) {
+                        return false;
+                }
+        }
+        return true;
+}
+
+mk_iterator = (function () {
+        var delegate = {
+                'object': iter_object
+              , 'string': iter_string_number
+              , 'number': iter_string_number
+              , 'function': iter_function
+        };
+
+        return function mk_iterator(x, ctx) {
+                var t = typeof x
+                  , f = delegate[t]
+                  ;
+                if (typeof f !== 'function') {
+                        return x;
+                }
+                return f;
+        };
+
+        /* WHERE */
+        function iter_object(x, ctx) {
+                if (x !== null && x !== undefined) {
+                        return function (v, k, dst) {
+                                return deep_eq(v, dst);
+                        };
+                }
+                return x;
+        }
+        function iter_string_number(x, ctx) {
+                return v(x);
+        }
+        function iter_function(x, ctx) {
+                if (typeof ctx === 'undefined') {
+                        return x;
+                }
+                return function (v, i, xs) {
+                        return x.call(ctx, v, i, xs);
+                };
+        }
+}());
+
+is_array = (function () {
+        return Array.isArray || function is_array(xs) {
+                return is_kind(xs, 'Array');
+        };
+}());
+
+function map(xs, f, ctx) {
+        var f_
+          , xs_
+          , n
+          , i
+          ;
+        if (xs === null || xs === undefined) {
+                return xs;
+        }
+        f_ = mk_iterator(f, ctx);
+        xs_ = [];
+        n = xs.length;
+        i = n;
+        while (i) {
+                xs_[i] = f_(xs[i], i--, xs);
+        }
+        return xs_;
+}
+
+function functions(x) {
+        var fs = []
+          , args = [].slice.call(arguments)
+          ;
+        if (typeof x === 'function') {
+                return map(x, function (f) {
+                        if (typeof f === 'function') {
+                                return f;
+                        }
+                });
+        }
+        if (typeof x === 'object') {
+                args.forEach(function (x) {
+                        for_each(x, function (f) {
+                                fs.push(f);
+                        });
+                });
+                return fs;
+        }
+        if (is_array(x)) {
+                x.forEach(function (f) {
+                        fs.push(f);
+                });
+                return fs;
+        }
+        return fs;
 }
               
 function extend(dst, srcs) {
@@ -118,3 +261,14 @@ cp = (function () {
                 return delegate[kind(x)](x);
         };
 }());
+
+// function mker = function mker(diff, cat, close) {
+//         var _description = {
+//                 diff: diff || {}
+//               , cat: cat
+//               , close: functions(close)
+//         }
+//         ;
+// 
+//         /* WHERE */
+//         _mker = function _mker(ks) {
