@@ -1,9 +1,10 @@
 {
-        "exported":             [ "Pair" ]
-      , "bitwise":              false
+        "bitwise":              false
+      , "boss":                 true
       , "camelcase":            false
       , "curly":                true
-      , "eqeqeq":               true
+      , "eqeqeq":               false
+      , "eqnull":               false
       , "es3":                  false
       , "forin":                true
       , "freeze":               false

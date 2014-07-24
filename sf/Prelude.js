@@ -1,274 +1,140 @@
 'use strict';
 
-var kind
-  , copy_regex
-  , cp
-  , is_array
-  , mk_iterator
-  ;
+var has_own = Object.prototype.hasOwnProperty.call;
 
-function has_own(o, k) {
-        return Object.prototype.hasOwnProperty.call(o, k);
-}
-
-kind = (function () {
-        var re_extract = /^[object (.*)]$/
-          , UNDEFINED
-          ;
-        return function kind(x) {
-                if (x === null) {
-                        return 'Null';
-                }
-                if (x === UNDEFINED) {
-                        return 'Undefined';
-                }
-                return re_extract.exec(Object.prototype.toString.call(x))[1];
-        };
-}());
-
-function is_kind(x, s) {
-        return kind(x) === s;
-}
-
-function mked_by_object_mker(x) {
-        var r = !!x && typeof x === 'object' && x.constructor === Object;
-        return r;
-}
-
-function v(k) {
-        return function (o) {
-                return o[k];
+function flip(f) {
+        return function (x, y) {
+                return f(y, x);
         };
 }
 
-function unsafe_copy_property(v, k) {
-        /*jshint validthis:true */
-        this[k] = v;
+function partial(f, x) {
+        return function (y) {
+                return f(x, y);
+        };
 }
 
-function call_with(f, o, k, ctx) {
-        return f.call(ctx, o[k], k, o);
+function copy_property(tgt, src) {
+        return function (k) {
+                return tgt[k] = src[k];
+        };
 }
 
-function for_in(o, f, ctx) {
+function for_own(x, f) {
         var k;
-        for (k in o) {
-                if (!call_with(f, o, k, ctx)) {
-                        break;
+        for (k in x) {
+                if (has_own(x, k)) {
+                        f(x[k]);
                 }
         }
 }
 
-function for_each(o, f, ctx) {
-        for_in(o, function (v, k) {
-                if (has_own(o, k)) {
-                        return call_with(f, o, k, ctx);
+function mix(x) {
+/* jshint ignore:start */
+        var i = 0
+          , n = arguments.length
+          , copy_property_ = partial(copy_property, x)
+          , o
+          ;
+        while (++i < n) {
+                o = arguments[i];
+                if (null != o) {
+                        for_own(o, copy_property_(o));
+                }
+        }
+        return x;
+/* jshint ignore:end */
+}
+
+function mk_delegate(methods) {
+        var fixed = {methods: methods};
+
+        function mk(properties) {
+                return mix(Object.create(fixed.methods), properties);
+        }
+
+        return mix(mk, {
+                mk: mk
+              , fixed: fixed
+              , delegate: function delegate() {
+                        var o = fixed.methods
+                          , args = [o].concat([].slice.call(arguments))
+                          ;
+                        fixed.methods = mix.apply(this, args);
+                        return this;
                 }
         });
 }
 
-function deep_eq(x, y) {
-        if (x && typeof x === 'object') {
-                if (is_array(x) && is_array(y)) {
-                        return eq_array(x, y);
-                }
-                return eq_object(x, y);
-        } else {
-                return x === y;
-        }
-}
+function mk_catenate(state) {
+        var fixed = {state: state};
 
-function has_a_match(xs, ys) {
-        var n = xs.length
-          , i = n - 1
-          ;
-        while (i) {
-                if (deep_eq(xs[i--], ys)) {
-                        return true;
-                }
+        function mk(properties) {
+                return mix(state, properties);
         }
-        return false;
-}
 
-function eq_object(x, y) {
-        var r = true;
-        for_each(y, function (v, k) {
-                if (!deep_eq(x[k], v)) {
-                        r = false;
-                        return false;
+        return mix(mk, {
+                mk: mk
+              , fixed: fixed
+              , catenate: function catenate() {
+                        var o = fixed.state
+                          , args = [o].concat([].slice.call(arguments))
+                          ;
+                        fixed.state = mix.apply(this, args);
+                        return this;
                 }
         });
-        return r;
-}
-
-function eq_array(xs, ys) {
-        var i = 0;
-        while (i++ < ys.length) {
-                if (!has_a_match(xs, ys[i])) {
-                        return false;
-                }
-        }
-        return true;
-}
-
-mk_iterator = (function () {
-        var delegate = {
-                'object': iter_object
-              , 'string': iter_string_number
-              , 'number': iter_string_number
-              , 'function': iter_function
-        };
-
-        return function mk_iterator(x, ctx) {
-                var t = typeof x
-                  , f = delegate[t]
-                  ;
-                if (typeof f !== 'function') {
-                        return x;
-                }
-                return f;
-        };
-
-        /* WHERE */
-        function iter_object(x, ctx) {
-                if (x !== null && x !== undefined) {
-                        return function (v, k, dst) {
-                                return deep_eq(v, dst);
-                        };
-                }
-                return x;
-        }
-        function iter_string_number(x, ctx) {
-                return v(x);
-        }
-        function iter_function(x, ctx) {
-                if (typeof ctx === 'undefined') {
-                        return x;
-                }
-                return function (v, i, xs) {
-                        return x.call(ctx, v, i, xs);
-                };
-        }
-}());
-
-is_array = (function () {
-        return Array.isArray || function is_array(xs) {
-                return is_kind(xs, 'Array');
-        };
-}());
-
-function map(xs, f, ctx) {
-        var f_
-          , xs_
-          , n
-          , i
-          ;
-        if (xs === null || xs === undefined) {
-                return xs;
-        }
-        f_ = mk_iterator(f, ctx);
-        xs_ = [];
-        n = xs.length;
-        i = n;
-        while (i) {
-                xs_[i] = f_(xs[i], i--, xs);
-        }
-        return xs_;
 }
 
 function functions(x) {
-        var fs = []
-          , args = [].slice.call(arguments)
+        var args = [].slice.call(arguments)
+          , arr
           ;
         if (typeof x === 'function') {
-                return map(x, function (f) {
-                        if (typeof f === 'function') {
-                                return f;
-                        }
-                });
+                return args.reduce(function (xs, x_) {
+                        return typeof x_ === 'function'
+                                ? xs.concat([x_])
+                                : xs;
+                }, []);
         }
         if (typeof x === 'object') {
-                args.forEach(function (x) {
-                        for_each(x, function (f) {
-                                fs.push(f);
+                args.forEach(function (x_) {
+                        for_own(x_, function (x__) {
+                                arr.push(x__);
                         });
                 });
-                return fs;
-        }
-        if (is_array(x)) {
-                x.forEach(function (f) {
-                        fs.push(f);
+        } else if (Array.isArray(x)) {
+                x.forEach(function (x_) {
+                        arr.push(x_);
                 });
-                return fs;
         }
-        return fs;
+        return arr;
 }
-              
-function extend(dst, srcs) {
-        var n = arguments.length
-          , i = n
-          , o
-          ;
-        while (i) {
-                o = arguments[n - (i--) + 1];
-                if (o !== null && o !== undefined) {
-                        for_each(o, unsafe_copy_property, dst);
+
+function mk_immure(enclose) {
+        var fixed = {enclose: functions(enclose)};
+
+        function mk(properties) {
+                var o = mix({}, properties)
+                  , closures = fixed.enclose
+                  , args = [].slice.call(arguments, 1)
+                  ;
+                closures.forEach(function (f) {
+                        if (typeof f === 'function') {
+                                o = f.apply(o, args) || o;
+                        }
+                });
+                return o;
+        }
+
+        return mix(mk, {
+                mk: mk
+              , fixed: fixed
+              , immure: function immure() {
+                        fixed.enclose = fixed.enclose
+                                .concat(functions.apply(null, arguments));
+                        return this;
                 }
-        }
-        return dst;
+        });
 }
 
-function copy_object(x) {
-        if (mked_by_object_mker(x)) {
-                return extend({}, x);
-        }
-        return x;
-}
-
-copy_regex = (function () {
-        var regexp_supports_sticky;
-        try {
-                RegExp('', 'y');
-                regexp_supports_sticky = true;
-        } catch (e) {
-                regexp_supports_sticky = false;
-        }
-        return function copy_regex(x) {
-                var flags = x.global ? 'g' : ''
-                        + x.ignoreCase ? 'i' : ''
-                        + x.multiline ? 'm' : ''
-                        + regexp_supports_sticky && x.sticky ? 'y' : '';
-                return new RegExp(x.source, flags);
-        };
-}());
-
-function copy_date(x) {
-        return new Date(x.getTime());
-}
-
-function copy_array(xs) {
-        return xs.slice();
-}
-
-cp = (function () {
-        var delegate = {
-                'Object': copy_object
-              , 'Array': copy_array
-              , 'Date': copy_date
-              , 'RegExp': copy_regex
-        };
-        return function cp(x) {
-                return delegate[kind(x)](x);
-        };
-}());
-
-// function mker = function mker(diff, cat, close) {
-//         var _description = {
-//                 diff: diff || {}
-//               , cat: cat
-//               , close: functions(close)
-//         }
-//         ;
-// 
-//         /* WHERE */
-//         _mker = function _mker(ks) {
