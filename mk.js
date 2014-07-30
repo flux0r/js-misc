@@ -5,7 +5,7 @@ function kind_string(x) {
 }
 
 function is_kind(kind, x) {
-        return kind === kind_string(x);
+        return '[object ' + kind + ']' === kind_string(x);
 }
 
 function is_regexp(x) {
@@ -46,7 +46,7 @@ function clone(x) {
                 if (typeof y !== 'object') {
                         return y;
                 }
-                y_ = mk(y);
+                y_ = mk(y)(y);
                 anc.push(y);
                 des.push(y_);
                 Object.getOwnPropertyNames(y).forEach(function (x) {
@@ -132,7 +132,7 @@ function diff_mker(o) {
 function cat_mker(o) {
         var cats = o || {};
         function mker(o) {
-                return mixin(merge({}, cats), o);
+                return mixin(merge({}, cats), o || {});
         }
         mker.cat = function cat(o) {
                 var o_ = cats;

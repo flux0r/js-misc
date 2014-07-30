@@ -45,9 +45,11 @@ describe('Differential inheritance.', function () {
 describe('Catenating inheritance.', function () {
 
         it('should set a default state', function () {
-                var x = cat_mker({
+                var X = cat_mker({
                         foo: {bar: 'bar'}
-                })();
+                })
+                  , x = X()
+                  ;
                 expect(x.foo.bar).toBe('bar');
         });
 
