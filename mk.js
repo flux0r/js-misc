@@ -5,10 +5,6 @@ function clone(x) {
           , des = []
           ;
         function iter(y) {
-                var delegate = {
-                        'Array': []
-                      , 'RegExp': new RegExp(y.source, flags(y))
-                      , 'Date': new Date(parent.getTime())
                 if (y === null) {
                         return null;
                 }
@@ -17,6 +13,33 @@ function clone(x) {
                 }
 
         /* WHERE */
+        function mk(x) {
+                var lku = {
+                        'Array': function () {
+                                return [];
+                        }
+                      , 'RegExp': function (x) {
+                                return new RegExp(x.source, flags(x));
+                        }
+                      , 'Date': function (x) {
+                                return new Date(x.getTime());
+
+                        }
+                      , 'Object': function (x) {
+                                return Object.create(Object.getPrototypeOf(x));
+                        }
+                }
+                  , kind
+                  ;
+                if (Array.isArray(x)) {
+                        kind = 'Array';
+                } else if (is_date(x)) {
+                        kind = 'Date';
+                } else if (is_regexp(x)) {
+                        kind = 'RegExp';
+                } else {
+                        kind = 'Object';
+                }
         function flags(re) {
                 return [ ''
                        , re.global ? 'g' : ''
