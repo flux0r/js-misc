@@ -1,5 +1,5 @@
 'use strict';
-/*global it, describe, expect, diff_mker */
+/*global it, describe, expect, cat_mker, diff_mker */
 
 describe('Differential inheritance.', function () {
 
@@ -40,4 +40,15 @@ describe('Differential inheritance.', function () {
                         expect(o.override()).toBe(1);
                 }
         );
+});
+
+describe('Catenating inheritance.', function () {
+
+        it('should set a default state', function () {
+                var x = cat_mker({
+                        foo: {bar: 'bar'}
+                })();
+                expect(x.foo.bar).toBe('bar');
+        });
+
 });

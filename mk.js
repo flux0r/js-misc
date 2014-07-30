@@ -1,16 +1,60 @@
 'use strict';
 
+function kind_string(x) {
+        return Object.prototype.toString.call(x);
+}
+
+function is_kind(kind, x) {
+        return kind === kind_string(x);
+}
+
+function is_regexp(x) {
+        return is_kind('RegExp', x);
+}
+
+function is_date(x) {
+        return is_kind('Date', x);
+}
+
+function kind(x) {
+        if (Array.isArray(x)) {
+                return 'Array';
+        }
+        if (is_regexp(x)) {
+                return 'RegExp';
+        }
+        if (is_date(x)) {
+                return 'Date';
+        }
+        return 'Object';
+}
+
 function clone(x) {
         var anc = []
           , des = []
           ;
         function iter(y) {
+                var i = anc.indexOf(y)
+                  , y_
+                  ;
+                if (i >= 0) {
+                        return des[i];
+                }
                 if (y === null) {
                         return null;
                 }
                 if (typeof y !== 'object') {
                         return y;
                 }
+                y_ = mk(y);
+                anc.push(y);
+                des.push(y_);
+                Object.getOwnPropertyNames(y).forEach(function (x) {
+                        y_[x] = iter(y_);
+                });
+                return y_;
+        }
+        return iter(x);
 
         /* WHERE */
         function mk(x) {
@@ -28,18 +72,9 @@ function clone(x) {
                       , 'Object': function (x) {
                                 return Object.create(Object.getPrototypeOf(x));
                         }
-                }
-                  , kind
-                  ;
-                if (Array.isArray(x)) {
-                        kind = 'Array';
-                } else if (is_date(x)) {
-                        kind = 'Date';
-                } else if (is_regexp(x)) {
-                        kind = 'RegExp';
-                } else {
-                        kind = 'Object';
-                }
+                };
+                return lku[kind(x)];
+        }
         function flags(re) {
                 return [ ''
                        , re.global ? 'g' : ''
@@ -47,6 +82,7 @@ function clone(x) {
                        , re.multiline ? 'm' : ''
                        ].join('');
         }
+}
 
 function transfer(tgt, src) {
         return function (k) {
