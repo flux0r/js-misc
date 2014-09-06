@@ -50,7 +50,7 @@ function clone(x) {
                 anc.push(y);
                 des.push(y_);
                 Object.getOwnPropertyNames(y).forEach(function (x) {
-                        y_[x] = iter(y_);
+                        y_[x] = iter(y[x]);
                 });
                 return y_;
         }
