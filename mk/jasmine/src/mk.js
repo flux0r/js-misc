@@ -116,6 +116,28 @@ function merge(tgt, src) {
         return tgt_;
 }
 
+function functions(xs) {
+        var args = [].slice.call(arguments, 0)
+          , arg_type = typeof args[0]
+          , r
+          ;
+        if (arg_type === 'function') {
+                return args.filter(function (x) {
+                        return typeof x === 'function';
+                });
+        }
+        if (arg_type === 'object') {
+                r = [];
+                args.forEach(function (x) {
+                        Object.getOwnPropertyNames(x).forEach(function (y) {
+                                r.push(y);
+                        });
+                });
+                return r;
+        }
+        return [];
+}
+
 function diff_mker(o) {
         var diffs = o || {};
         function mker(o) {
@@ -137,6 +159,26 @@ function cat_mker(o) {
         mker.cat = function cat(o) {
                 var o_ = cats;
                 cats = mixin.apply(this, [o_, o]);
+                return this;
+        };
+        return mker;
+}
+
+function enc_mker(o) {
+        var encs = o ? functions(o) : [];
+        function mker(o_) {
+                var x = mixin({}, o_ || {})
+                  , args = [].slice.call(arguments, 1)
+                  ;
+                encs.forEach(function (f) {
+                        if (typeof f === 'function') {
+                                x = f.apply(x, args) || x;
+                        }
+                });
+                return x;
+        };
+        mker.enc = function enc(o) {
+                encs = encs.concat(functions.apply(null, arguments));
                 return this;
         };
         return mker;
