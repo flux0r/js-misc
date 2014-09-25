@@ -40,6 +40,19 @@ describe('Differential inheritance.', function () {
                         expect(o.override()).toBe(1);
                 }
         );
+
+        it('should let you pass multiple new references and mix them in',
+                function () {
+                        var a = function () { return 'a'; }
+                          , b = function () { return 'b'; }
+                          , X = diff_mker().diff({a: a}, {b: b})
+                          , x = X()
+                          ;
+                        expect(x.a()).toBe('a');
+                        expect(x.b()).toBe('b');
+                }
+        );
+
 });
 
 describe('Catenating inheritance.', function () {
@@ -51,6 +64,13 @@ describe('Catenating inheritance.', function () {
                   , x = X()
                   ;
                 expect(x.foo.bar).toBe('bar');
+        });
+
+        it('should override the default state', function () {
+                var X = cat_mker({foo: 'bar'})
+                  , x = X({foo: 'foo'})
+                  ;
+                expect(x.foo).toBe('foo');
         });
 
 });
