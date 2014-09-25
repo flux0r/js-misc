@@ -54,3 +54,26 @@ describe('Catenating inheritance.', function () {
         });
 
 });
+
+describe('Enclosing inheritance.', function () {
+
+        it('should pass variables to closures', function () {
+                var X = enc_mker().enc(function (x, y) {
+                        var x_ = x
+                          , y_ = y
+                          ;
+
+                        this.x = function () {
+                                return x_;
+                        };
+                        this.y = function () {
+                                return y_;
+                        };
+                })
+                  , x = X(null, 'x', 'y')
+                  ;
+                expect(x.x()).toBe('x');
+                expect(x.y()).toBe('y');
+        });
+
+});
