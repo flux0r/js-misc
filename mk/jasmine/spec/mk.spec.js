@@ -41,18 +41,6 @@ describe('Differential inheritance.', function () {
                 }
         );
 
-        it('should let you pass multiple new references and mix them in',
-                function () {
-                        var a = function () { return 'a'; }
-                          , b = function () { return 'b'; }
-                          , X = diff_mker().diff({a: a}, {b: b})
-                          , x = X()
-                          ;
-                        expect(x.a()).toBe('a');
-                        expect(x.b()).toBe('b');
-                }
-        );
-
 });
 
 describe('Catenating inheritance.', function () {
