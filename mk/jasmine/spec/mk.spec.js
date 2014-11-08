@@ -65,6 +65,18 @@ describe('Catenating inheritance.', function () {
 
 describe('Enclosing inheritance.', function () {
 
+        it('should use closure to set internal state', function () {
+                var X = enc_mker(function () {
+                        var pw_ = 'blah';
+                        this.pw = function pw() {
+                                return pw_;
+                        };
+                })
+                  , x = X()
+                  ;
+                expect(x.pw()).toBe('blah');
+        });
+
         it('should pass variables to closures', function () {
                 var X = enc_mker().enc(function (x, y) {
                         var x_ = x
@@ -83,5 +95,34 @@ describe('Enclosing inheritance.', function () {
                 expect(x.x()).toBe('x');
                 expect(x.y()).toBe('y');
         });
+
+        it('should use closure to set internal state, ' +
+                'should allow chaining, ' +
+                'and should allow object literals for enclosing', function () {
+                        var X = enc_mker(function () {
+                                var pw_ = 'blah';
+                                this.pw = function pw() {
+                                        return pw_;
+                                };
+                        })
+                          , x
+                        ;
+                        X.enc(function () {
+                                this.a = 'a';
+                        }).enc({
+                                b: function b() {
+                                        this.b = 'b';
+                                }
+                              , c: function c() {
+                                        this.c = 'c';
+                                }
+                        })
+                        x = X();
+                        expect(x.pw()).toBe('blah');
+                        expect(x.a).toBe('a');
+                        expect(x.b).toBe('b');
+                        expect(x.c).toBe('c');
+                }
+        );
 
 });

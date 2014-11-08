@@ -130,7 +130,7 @@ function functions(xs) {
                 r = [];
                 args.forEach(function (x) {
                         Object.getOwnPropertyNames(x).forEach(function (y) {
-                                r.push(y);
+                                r.push(x[y]);
                         });
                 });
                 return r;
